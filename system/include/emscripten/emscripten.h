@@ -212,10 +212,15 @@ typedef void (*em_scan_func)(void*, void*);
 void emscripten_scan_registers(em_scan_func func);
 void emscripten_scan_stack(em_scan_func func);
 
+// Asyncronous version of dlopen.  Since WebAssembly module loading in general
+// is asyncronous the normal dlopen function can't be used in all situations.
+typedef void (*em_dlopen_callback)(void* handle, void* user_data);
+void emscripten_dlopen(const char *filename, int flags, void* user_data, em_dlopen_callback onsuccess, em_arg_callback_func onerror);
+
 // Old coroutines API
 // Deprecated and not available in upstream backend; use Fibers instead
 
-typedef void * emscripten_coroutine;
+typedef void *emscripten_coroutine;
 emscripten_coroutine emscripten_coroutine_create(em_arg_callback_func func, void *arg, int stack_size);
 int emscripten_coroutine_next(emscripten_coroutine);
 void emscripten_yield(void);

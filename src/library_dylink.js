@@ -179,6 +179,9 @@ var LibraryDylink = {
   dlopen: function(filename, flag) {
     abort("To use dlopen, you need to use Emscripten's linking support, see https://github.com/emscripten-core/emscripten/wiki/Linking");
   },
+  emscripten_dlopen: function(filename, flag) {
+    abort("To use dlopen, you need to use Emscripten's linking support, see https://github.com/emscripten-core/emscripten/wiki/Linking");
+  },
   dlclose: function(handle) {
     abort("To use dlopen, you need to use Emscripten's linking support, see https://github.com/emscripten-core/emscripten/wiki/Linking");
   },
@@ -674,7 +677,7 @@ var LibraryDylink = {
       return getLibModule().then(function(libModule) {
         moduleLoaded(libModule);
         return handle;
-      })
+      });
     }
 
     moduleLoaded(getLibModule());
@@ -718,10 +721,8 @@ var LibraryDylink = {
   },
 
   // void* dlopen(const char* filename, int flags);
-  dlopen__deps: ['$DLFCN', '$FS', '$ENV'],
-  dlopen__proxy: 'sync',
-  dlopen__sig: 'iii',
-  dlopen: function(filenameAddr, flags) {
+  $dlopen_internal__deps: ['$DLFCN', '$FS', '$ENV'],
+  $dlopen_internal: function(filenameAddr, flags, loadAsync) {
     // void *dlopen(const char *file, int mode);
     // http://pubs.opengroup.org/onlinepubs/009695399/functions/dlopen.html
     var searchpaths = [];
@@ -760,7 +761,7 @@ var LibraryDylink = {
     var jsflags = {
       global:   Boolean(flags & {{{ cDefine('RTLD_GLOBAL') }}}),
       nodelete: Boolean(flags & {{{ cDefine('RTLD_NODELETE') }}}),
-
+      loadAsync: loadAsync,
       fs: FS, // load libraries from provided filesystem
     }
 
@@ -772,6 +773,44 @@ var LibraryDylink = {
 #endif
       DLFCN.errorMsg = 'Could not load dynamic lib: ' + filename + '\n' + e;
       return 0;
+    }
+  },
+
+  dlopen__deps: ['dlopen_internal'],
+  dlopen__proxy: 'sync',
+  dlopen__sig: 'iii',
+  dlopen: function(filename, flags) {
+    return dlopen_internal(filename, flags, false);
+  },
+
+  // Async version of dlopen.
+  emscripten_dlopen__deps: ['$dlopen_internal', '$callUserCallback',
+#if !MINIMAL_RUNTIME
+    '$runtimeKeepalivePush',
+    '$runtimeKeepalivePop',
+#endif
+  ],
+  emscripten_dlopen__proxy: 'sync',
+  emscripten_dlopen__sig: 'iii',
+  emscripten_dlopen: function(filename, flags, user_data, onsuccess, onerror) {
+    function errorCallback() {
+      {{{ runtimeKeepalivePop() }}}
+      callUserCallback(function () { {{{ makeDynCall('vi', 'onerror') }}}(user_data); });
+    }
+    function successCallback(handle) {
+      {{{ runtimeKeepalivePop() }}}
+      callUserCallback(function () { {{{ makeDynCall('vii', 'onsuccess') }}}(user_data, handle); });
+    }
+
+    {{{ runtimeKeepalivePush() }}}
+    var promise = dlopen_internal(filename, flags, true);
+    if (promise) {
+      promise.then(
+        function(handle) { successCallback(handle); },
+        errorCallback
+      );
+    } else {
+      errorCallback();
     }
   },
 
