@@ -426,12 +426,12 @@ function exitRuntime() {
 #if USE_PTHREADS
   if (ENVIRONMENT_IS_PTHREAD) return; // PThreads reuse the runtime from the main thread.
 #endif
-#if EXIT_RUNTIME
-  callRuntimeCallbacks(__ATEXIT__);
-  <<< ATEXITS >>>
 #if USE_PTHREADS
   PThread.runExitHandlers();
 #endif
+#if EXIT_RUNTIME
+  callRuntimeCallbacks(__ATEXIT__);
+  <<< ATEXITS >>>
 #endif
   runtimeExited = true;
 }

@@ -23,12 +23,12 @@ function run() {
 #else
   var ret = _main();
 
-#if EXIT_RUNTIME
-  callRuntimeCallbacks(__ATEXIT__);
-  <<< ATEXITS >>>
 #if USE_PTHREADS
   PThread.runExitHandlers();
 #endif
+#if EXIT_RUNTIME
+  callRuntimeCallbacks(__ATEXIT__);
+  <<< ATEXITS >>>
 #endif
 
 #if IN_TEST_HARNESS
