@@ -1939,6 +1939,8 @@ var REVERSE_DEPS = 'auto';
 // on startup, before loading the main module.
 var AUTOLOAD_DYLIBS = 1;
 
+var ALLOW_UNIMPLEMENTED_SYSCALLS = 1;
+
 //===========================================
 // Internal, used for testing only, from here
 //===========================================
