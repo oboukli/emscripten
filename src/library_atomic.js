@@ -4,7 +4,9 @@
  * SPDX-License-Identifier: MIT
  */
 
+#if ASSERTIONS
 assert(SHARED_MEMORY);
+#endif
 
 addToLibrary({
 // Chrome 87 (and hence Edge 87) shipped Atomics.waitAsync:
